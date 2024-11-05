@@ -1,7 +1,10 @@
 import 'package:demo_app/features/auth/bloc/auth_bloc.dart';
 import 'package:demo_app/features/check_in/bloc/check_in_bloc.dart';
-import 'package:demo_app/utils/app_strings.dart';
+import 'package:demo_app/utils/app_utils.dart';
+import 'package:demo_app/utils/res/app_strings.dart';
+import 'package:demo_app/views/widgets/primary_btn_widget.dart';
 import 'package:demo_app/views/widgets/switch_widget.dart';
+import 'package:demo_app/views/widgets/text_ff_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -9,34 +12,41 @@ class CheckInScreen extends StatefulWidget {
   const CheckInScreen({super.key});
 
   @override
-  _CheckInScreenState createState() => _CheckInScreenState();
+  State<CheckInScreen> createState() => _CheckInScreenState();
 }
 
 class _CheckInScreenState extends State<CheckInScreen> {
-  bool gambledToday = false;
-  final TextEditingController _notesController = TextEditingController();
+  late TextEditingController _notesC;
 
   @override
   void initState() {
     super.initState();
+    _notesC = TextEditingController();
     context.read<CheckInBloc>().add(LoadCheckInHistory());
   }
 
   void _showCheckInBottomSheet() {
+    bool gambledToday = false;
     showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(25),
+          topRight: Radius.circular(25),
+        ),
+      ),
       isScrollControlled: true,
       builder: (context) => Padding(
-        padding: MediaQuery.of(context).viewInsets, // Handle keyboard overlay
+        padding: MediaQuery.of(context).viewInsets,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppUtils.hrPadding,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Gambled Today'),
+                  const Text(AppStrings.gambledToday),
                   SwitchWidget(
                     initialValue: gambledToday,
                     onChanged: (value) {
@@ -45,9 +55,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
                   ),
                 ],
               ),
-              TextField(
-                controller: _notesController,
-                decoration: const InputDecoration(labelText: 'Notes'),
+              TextFormFieldWidget(
+                controller: _notesC,
+                label: AppStrings.notes,
               ),
               const SizedBox(height: 16.0),
               BlocConsumer<CheckInBloc, CheckInState>(
@@ -57,11 +67,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       const SnackBar(
                           content: Text('Check-in submitted successfully!')),
                     );
-                    _notesController.clear();
-                    setState(() {
-                      gambledToday = false;
-                    });
-                    Navigator.pop(context); // Close the bottom sheet
+                    _notesC.clear();
+                    gambledToday = false;
+                    Navigator.pop(context);
                     context.read<CheckInBloc>().add(LoadCheckInHistory());
                   } else if (state is CheckInError) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -73,20 +81,20 @@ class _CheckInScreenState extends State<CheckInScreen> {
                   if (state is CheckInLoading) {
                     return const CircularProgressIndicator();
                   }
-                  return ElevatedButton(
+                  return PrimaryButtonWidget(
                     onPressed: () {
-                      final notes = _notesController.text;
                       context.read<CheckInBloc>().add(
                             SubmitCheckIn(
                               gambledToday: gambledToday,
-                              notes: notes,
+                              notes: _notesC.text,
                             ),
                           );
                     },
-                    child: const Text('Submit'),
+                    label: AppStrings.submit,
                   );
                 },
               ),
+              const SizedBox(height: 25)
             ],
           ),
         ),
@@ -101,14 +109,22 @@ class _CheckInScreenState extends State<CheckInScreen> {
         title: const Text(AppStrings.dailyChkIn),
         actions: [
           IconButton(
-              onPressed: () {
-                context.read<AuthBloc>().add(SignOutRequested());
+              onPressed: () async {
+                final res = await AppUtils.showConfirmDilogue(
+                  AppStrings.logout,
+                  AppStrings.logoutDesc,
+                  confirmLabel: AppStrings.yes,
+                  cancelLabel: AppStrings.no,
+                );
+                print('res in $res');
+                if (res == null) return;
+                if (res) context.read<AuthBloc>().add(SignOutRequested());
               },
               icon: const Icon(Icons.logout))
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppUtils.hrPadding,
         child: BlocBuilder<CheckInBloc, CheckInState>(
           builder: (context, state) {
             if (state is CheckInHistoryLoaded) {
@@ -121,13 +137,13 @@ class _CheckInScreenState extends State<CheckInScreen> {
                   final checkIn = state.checkIns[index];
                   return ListTile(
                     title: Text(
-                      checkIn['gambledToday']
+                      checkIn.gambledToday
                           ? AppStrings.gamble
                           : AppStrings.notGambled,
                     ),
-                    subtitle: Text(checkIn['notes']),
+                    subtitle: Text(checkIn.notes),
                     trailing: Text(
-                      '${checkIn['date'].day}/${checkIn['date'].month}/${checkIn['date'].year}',
+                      '${checkIn.date.day}/${checkIn.date.month}/${checkIn.date.year}',
                     ),
                   );
                 },
@@ -141,7 +157,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCheckInBottomSheet,
-        tooltip: 'Add Check-In',
+        tooltip: AppStrings.addCheckin,
         child: const Icon(Icons.add),
       ),
     );

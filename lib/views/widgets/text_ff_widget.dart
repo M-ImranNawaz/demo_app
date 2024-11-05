@@ -62,7 +62,6 @@ class _TextFormFieldWidgetState extends State<TextFormFieldWidget> {
       children: [
         if (widget.label != null) ...[
           Text(
-            // AppLocalizations.of(context)!.userName,
             widget.label!,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),

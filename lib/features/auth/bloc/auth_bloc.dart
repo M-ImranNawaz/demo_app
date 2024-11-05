@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:demo_app/features/auth/presentation/auth_gate.dart';
+import 'package:demo_app/features/check_in/presentation/check_in_screen.dart';
+import 'package:demo_app/utils/app_utils.dart';
+import 'package:demo_app/utils/nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -12,50 +15,51 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   AuthBloc() : super(AuthInitial()) {
     on<SignInRequested>((event, emit) async {
-      emit(AuthLoading());
+      // emit(AuthLoading());
+      AppUtils.showLoading();
       try {
         await _auth.signInWithEmailAndPassword(
           email: event.email,
           password: event.password,
         );
         emit(AuthAuthenticated());
+        Nav.offAll(const CheckInScreen());
       } catch (e) {
-        emit(AuthError(e.toString()));
-        emit(AuthUnauthenticated());
+        AppUtils.hideLoading();
+        AppUtils.showErrorToast(
+            e is FirebaseAuthException ? e.message ?? '' : e.toString());
       }
     });
 
     on<SignUpRequested>((event, emit) async {
-      emit(AuthLoading());
+      // emit(AuthLoading());
+      AppUtils.showLoading();
       try {
-        // Create user with email and password
         UserCredential userCredential =
             await _auth.createUserWithEmailAndPassword(
           email: event.email,
           password: event.password,
         );
-
-        // Save first name to Firestore
         await _firestore.collection('users').doc(userCredential.user!.uid).set({
-          'firstName': event.fullName,
+          'fullname': event.fullName,
           'email': event.email,
           'createdAt': FieldValue.serverTimestamp(),
         });
-
         emit(AuthAuthenticated());
+
+        Nav.offAll(const CheckInScreen());
       } catch (e) {
-        emit(AuthError(e.toString()));
-        emit(AuthUnauthenticated());
+        AppUtils.hideLoading();
+        AppUtils.showErrorToast(
+            e is FirebaseAuthException ? e.message ?? '' : e.toString());
       }
     });
 
     on<AuthStatusRequested>((event, emit) async {
       final user = _auth.currentUser;
       if (user != null) {
-        // User is already authenticated
         emit(AuthAuthenticated());
       } else {
-        // No user logged in
         emit(AuthUnauthenticated());
       }
     });
@@ -63,6 +67,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SignOutRequested>((event, emit) async {
       emit(AuthLoading());
       await _auth.signOut();
+      Nav.offAll(const AuthGate());
       emit(AuthUnauthenticated());
     });
   }

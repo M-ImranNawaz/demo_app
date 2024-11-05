@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:demo_app/features/check_in/models/check_in_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'check_in_event.dart';
@@ -11,12 +13,17 @@ class CheckInBloc extends Bloc<CheckInEvent, CheckInState> {
     on<SubmitCheckIn>((event, emit) async {
       emit(CheckInLoading());
       try {
-        // Add check-in data to Firestore
-        await _firestore.collection('check_ins').add({
-          'gambledToday': event.gambledToday,
-          'notes': event.notes,
-          'date': FieldValue.serverTimestamp(),
-        });
+        final uId = FirebaseAuth.instance.currentUser?.uid;
+        CheckInModel checkIn = CheckInModel(
+          gambledToday: event.gambledToday,
+          notes: event.notes,
+          date: DateTime.now(),
+          userId: uId,
+          id: '',
+        );
+
+        await _firestore.collection('check_ins').add(checkIn.toMap());
+
         emit(CheckInSuccess());
       } catch (e) {
         emit(CheckInError(e.toString()));
@@ -26,20 +33,16 @@ class CheckInBloc extends Bloc<CheckInEvent, CheckInState> {
     on<LoadCheckInHistory>((event, emit) async {
       emit(CheckInLoading());
       try {
-        // Fetch check-in history
+        final uId = FirebaseAuth.instance.currentUser?.uid;
         QuerySnapshot snapshot = await _firestore
             .collection('check_ins')
+            .where('userId', isEqualTo: uId)
             .orderBy('date', descending: true)
             .get();
 
-        List<Map<String, dynamic>> checkIns = snapshot.docs.map((doc) {
-          return {
-            'gambledToday': doc['gambledToday'],
-            'notes': doc['notes'],
-            'date': doc['date'].toDate(),
-          };
+        List<CheckInModel> checkIns = snapshot.docs.map((doc) {
+          return CheckInModel.fromDocument(doc);
         }).toList();
-
         emit(CheckInHistoryLoaded(checkIns));
       } catch (e) {
         emit(CheckInError(e.toString()));

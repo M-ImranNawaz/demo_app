@@ -14,7 +14,7 @@ class CheckInError extends CheckInState {
 }
 
 class CheckInHistoryLoaded extends CheckInState {
-  final List<Map<String, dynamic>> checkIns;
+  final List<CheckInModel> checkIns;
 
   CheckInHistoryLoaded(this.checkIns);
 }
