@@ -25,6 +25,66 @@ class _CheckInScreenState extends State<CheckInScreen> {
     context.read<CheckInBloc>().add(LoadCheckInHistory());
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(AppStrings.dailyChkIn),
+        actions: [
+          IconButton(
+              onPressed: () async {
+                final res = await AppUtils.showConfirmDilogue(
+                  AppStrings.logout,
+                  AppStrings.logoutDesc,
+                  confirmLabel: AppStrings.yes,
+                  cancelLabel: AppStrings.no,
+                );
+                if (res == null) return;
+                if (res) context.read<AuthBloc>().add(SignOutRequested());
+              },
+              icon: const Icon(Icons.logout))
+        ],
+      ),
+      body: Padding(
+        padding: AppUtils.hrPadding,
+        child: BlocBuilder<CheckInBloc, CheckInState>(
+          builder: (context, state) {
+            if (state is CheckInHistoryLoaded) {
+              if (state.checkIns.isEmpty) {
+                return const Center(child: Text(AppStrings.notChkIn));
+              }
+              return ListView.builder(
+                itemCount: state.checkIns.length,
+                itemBuilder: (context, index) {
+                  final checkIn = state.checkIns[index];
+                  return ListTile(
+                    title: Text(
+                      checkIn.gambledToday
+                          ? AppStrings.gamble
+                          : AppStrings.notGambled,
+                    ),
+                    subtitle: Text(checkIn.notes),
+                    trailing: Text(
+                      '${checkIn.date.day}/${checkIn.date.month}/${checkIn.date.year}',
+                    ),
+                  );
+                },
+              );
+            } else if (state is CheckInLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return const Center(child: Text(AppStrings.errHistory));
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showCheckInBottomSheet,
+        tooltip: AppStrings.addCheckin,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
   void _showCheckInBottomSheet() {
     bool gambledToday = false;
     showModalBottomSheet(
@@ -98,67 +158,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.dailyChkIn),
-        actions: [
-          IconButton(
-              onPressed: () async {
-                final res = await AppUtils.showConfirmDilogue(
-                  AppStrings.logout,
-                  AppStrings.logoutDesc,
-                  confirmLabel: AppStrings.yes,
-                  cancelLabel: AppStrings.no,
-                );
-                print('res in $res');
-                if (res == null) return;
-                if (res) context.read<AuthBloc>().add(SignOutRequested());
-              },
-              icon: const Icon(Icons.logout))
-        ],
-      ),
-      body: Padding(
-        padding: AppUtils.hrPadding,
-        child: BlocBuilder<CheckInBloc, CheckInState>(
-          builder: (context, state) {
-            if (state is CheckInHistoryLoaded) {
-              if (state.checkIns.isEmpty) {
-                return const Center(child: Text(AppStrings.notChkIn));
-              }
-              return ListView.builder(
-                itemCount: state.checkIns.length,
-                itemBuilder: (context, index) {
-                  final checkIn = state.checkIns[index];
-                  return ListTile(
-                    title: Text(
-                      checkIn.gambledToday
-                          ? AppStrings.gamble
-                          : AppStrings.notGambled,
-                    ),
-                    subtitle: Text(checkIn.notes),
-                    trailing: Text(
-                      '${checkIn.date.day}/${checkIn.date.month}/${checkIn.date.year}',
-                    ),
-                  );
-                },
-              );
-            } else if (state is CheckInLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            return const Center(child: Text(AppStrings.errHistory));
-          },
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCheckInBottomSheet,
-        tooltip: AppStrings.addCheckin,
-        child: const Icon(Icons.add),
       ),
     );
   }

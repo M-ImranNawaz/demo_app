@@ -5,7 +5,7 @@ A Flutter-based check-in application with Firebase integration and BLoC state ma
 ---
 ## App Demo
 
-Screenrecording:   - `imrannawaz288@gmail.com`
+Screenrecording:   - `https://youtu.be/HQva721EWCU`
 
 ## Getting Started
 
@@ -30,7 +30,6 @@ Ensure you have Flutter and Dart SDK installed.
 4. **Run the App**
    ```bash
    flutter run
-
 
 ## Project Structure
 
